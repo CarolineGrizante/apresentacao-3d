@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCC - Caroline da Silva Grizante</title>
+    
+    <!-- Three.js Engine & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #webgl-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Top Bar Interface */
+        #top-bar {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            right: 24px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .brand-badge {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+            pointer-events: auto;
+        }
+
+        .brand-badge i {
+            color: #00e5ff;
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .brand-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #00e5ff;
+        }
+
+        .author-tag {
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        #slides-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 5%;
+            transition: all 0.4s ease;
+        }
+
+        .slide {
+            display: none;
+            width: 480px;
+            background: rgba(10, 16, 31, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 229, 255, 0.12);
+            pointer-events: auto;
+            transform-style: preserve-3d;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .slide.active {
+            display: block;
+            animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .slide-thanks {
+            width: 580px;
+            text-align: center;
+            margin: 0 auto;
+            padding: 35px 30px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        .hud-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 229, 255, 0.12);
+            color: #00e5ff;
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            font-size: 0.72rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        h2 {
+            color: #ffffff;
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        h3 {
+            color: #38bdf8;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        p, li {
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: #cbd5e1;
+        }
+
+        ul {
+            padding-left: 0;
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        li {
+            position: relative;
+            padding-left: 22px;
+            margin-bottom: 10px;
+        }
+
+        li::before {
+            content: "✦";
+            position: absolute;
+            left: 0;
+            color: #00e5ff;
+            font-size: 0.8rem;
+        }
+
+        strong { color: #ffffff; }
+        .highlight { color: #34d399; font-weight: 600; }
+
+        .formula-box {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(59, 130, 246, 0.08));
+            padding: 14px;
+            border-radius: 12px;
+            border-left: 4px solid #00e5ff;
+            margin: 14px 0;
+            font-size: 0.85rem;
+            color: #ffffff;
+            box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.05);
+        }
+
+        .thanks-box {
+            background: rgba(0, 229, 255, 0.04);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            border-radius: 12px;
+            padding: 22px 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .thanks-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            color: #c9d1d9;
+        }
+
+        .thanks-box strong {
+            color: #a3b3cc;
+            font-weight: 600;
+        }
+
+        .thanks-box .author-name { color: #d0d7de; }
+        .thanks-box .fho-green {
+            color: #34d399;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .thanks-box .sub-info {
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .thanks-quote {
+            font-style: italic;
+            color: #8b949e;
+            font-size: 0.88rem;
+            margin-top: 18px;
+        }
+
+        #nav-bar {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: rgba(10, 16, 31, 0.85);
+            backdrop-filter: blur(16px);
+            padding: 8px 22px;
+            border-radius: 40px;
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.15);
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, #00e5ff, #0284c7);
+            color: #030712;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+        }
+
+        .slide-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: #00e5ff;
+            width: 24px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #00e5ff;
+        }
+
+        .slide-counter {
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: #00e5ff;
+            letter-spacing: 1px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        #hint-box {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        #hint-box i { color: #00e5ff; }
+    </style>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+
+    <div id="top-bar">
+        <div class="brand-badge">
+            <i class="fa-solid fa-microchip"></i>
+            <div>
+                <div class="brand-title">Engenharia de Computação • TCC</div>
+                <div class="author-tag">Caroline da Silva Grizante (RA: 114105)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="slides-container">
+        
+        <!-- Slide 1 -->
+        <div class="slide active">
+            <div class="hud-category"><i class="fa-solid fa-graduation-cap"></i> TCC</div>
+            <h2>Uso de redes neurais convolucionais multimodais para estimativa da idade óssea e classificação do desvio de maturação esquelética pediátrica</h2>
+            <br>
+            <p><strong>Autora:</strong> Caroline da Silva Grizante (RA: 114105)</p>
+            <p><strong>Orientador:</strong> Dr. Renato Luciano Cagnin</p>
+            <br>
+            <ul>
+                <li><span class="highlight">Problema:</span> Triagem de atrasos ou avanços de crescimento na infância.</li>
+                <li><span class="highlight">Gargalo Atual:</span> Escassez de especialistas no SUS e alto custo de softwares proprietários.</li>
+                <li><span class="highlight">Proposta:</span> Solução de código aberto baseada em IA Multimodal (imagem radiológica + dados clínicos).</li>
+            </ul>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide">
+            <div class="hud-category"><i class="fa-solid fa-eye"></i> Visão Computacional e Anatômica</div>
+            <h2>Como a IA Aprende a Maturação Óssea</h2>
+            <h3>Análise dos padrões nos diferentes meses e anos</h3>
+            <ul>
+                <li><span class="highlight">Evolução Anatômica:</span> Recém-nascidos possuem predominantemente cartilagem.</li>
+                <li><span class="highlight">Calcificação Progressiva:</span> Novos núcleos de ossificação surgem no punho (carpo).</li>
+                <li><span class="highlight">Fechamento Epifisário:</span> As placas de crescimento se fundem na maturidade esquelética.</li>
+                <li><span class="highlight">Aprendizado:</span> A CNN correlaciona tamanho, densidade e formato com a idade biológica.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide">
+            <div class="hud-category"><i class="fa-solid fa-diagram-project"></i> Arquitetura de IA</div>
+            <h2>Arquitetura e Extração de Características</h2>
+            <h3>Fusão de Imagem e Metadados</h3>
+            <ul>
+                <li><span class="highlight">Visão Computacional (CNN / ViT):</span> Extrai características das regiões de interesse.</li>
+                <li><span class="highlight">Metadados Clínicos (MLP):</span> Incorpora o sexo biológico do paciente.</li>
+                <li><span class="highlight">Fusão Multimodal:</span> Concatenação dos vetores para estimar a idade óssea exata.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide">
+            <div class="hud-category"><i class="fa-solid fa-notes-medical"></i> Decisão Clínica</div>
+            <h2>Métrica de Alerta e Classificação Clínica</h2>
+            <p>A IA calcula a discrepância (&Delta;) entre a idade óssea predita e a idade cronológica real:</p>
+            
+            <div class="formula-box">
+                <strong>Discrepância (&Delta;)</strong> = Idade Óssea (IA) - Idade Cronológica Real
+            </div>
+
+            <ul>
+                <li><span style="color:#f87171; font-weight:bold;">&Delta; > +24 meses:</span> Alerta de Avanço Ósseo Severo (Puberdade Precoce).</li>
+                <li><span style="color:#fbbf24; font-weight:bold;">&Delta; < -24 meses:</span> Alerta de Atraso Ósseo Severo (Deficiência de GH / Hipotireoidismo).</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide">
+            <div class="hud-category"><i class="fa-solid fa-chart-line"></i> Conclusão e Impacto</div>
+            <h2>Resultados Esperados e Impacto Social</h2>
+            <ul>
+                <li><span class="highlight">Acurácia Preditiva:</span> Baixo Erro Médio Absoluto no dataset RSNA (~12.600 radiografias).</li>
+                <li><span class="highlight">Explicabilidade Visual (Grad-CAM):</span> Destaque das regiões das placas de crescimento.</li>
+                <li><span class="highlight">Apoio ao SUS:</span> Ferramenta aberta sem custo de licenças para triagem preventiva.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide">
+            <div class="hud-category"><i class="fa-solid fa-lightbulb"></i> Diferenciais do Projeto</div>
+            <h2>O que Diferencia este Trabalho?</h2>
+            <h3>Inovação em relação aos modelos convencionais</h3>
+            <ul>
+                <li><span class="highlight">Abordagem Multimodal Nativa:</span> Fusão direta das feições de imagem radiológica com o sexo biológico na arquitetura.</li>
+                <li><span class="highlight">Classificação Operacional:</span> Além da regressão em meses, inclui regra categórica de desvio de maturação (F1-Score e Acurácia Balanceada).</li>
+                <li><span class="highlight">Análise por Estágio de Desenvolvimento:</span> Fatiamento do erro (MAE) por marcos anatômicos (Carpo x Epífises x Fusão).</li>
+                <li><span class="highlight">Rigor de Engenharia:</span> Protocolo estrito de prevenção de vazamento de dados (Data Leakage) e auditoria de duplicatas.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 7 (Agradecimentos) -->
+        <div class="slide slide-thanks">
+            <div class="hud-category"><i class="fa-solid fa-check-double"></i> CONCLUSÃO</div>
+            <h2 style="font-size: 2.2rem; color: #00e5ff; margin-top: 5px; margin-bottom: 12px; font-weight: bold;">Muito Obrigada!</h2>
+          
+            <div class="thanks-box">
+                <p><strong>Autora:</strong> <span class="author-name">Caroline da Silva Grizante</span></p>
+                <p><strong>Orientador:</strong> <span class="author-name">Prof. Dr. Renato Luciano Cagnin</span></p>
+                <p class="fho-green">FHO - Fundação Hermínio Ometto</p>
+                <p class="sub-info">Engenharia de Computação • 2026</p>
+            </div>
+
+            <p class="thanks-quote">
+                "A Inteligência Artificial a serviço da saúde pública e da precisão diagnóstica."
+            </p>
+        </div>
+
+    </div>
+
+    <div id="nav-bar">
+        <button class="nav-btn" onclick="prevSlide()"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="slide-dots" id="dots-container"></div>
+        <span class="slide-counter" id="slide-indicator">1 / 7</span>
+        <button class="nav-btn" onclick="nextSlide()"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <div id="hint-box">
+        <i class="fa-solid fa-cube"></i> Interaja no espaço 3D usando mouse ou teclado
+    </div>
+
+    <script>
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030712, 0.018);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = false;
+
+        const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+        window.addEventListener('mousemove', (e) => {
+            mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouse.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 1.5);
+        scene.add(ambientLight);
+
+        const mainSpotLight = new THREE.SpotLight(0x00e5ff, 4);
+        mainSpotLight.position.set(5, 10, 10);
+        mainSpotLight.angle = Math.PI / 4;
+        mainSpotLight.penumbra = 0.8;
+        scene.add(mainSpotLight);
+
+        const accentPointLight = new THREE.PointLight(0x38bdf8, 3, 20);
+        accentPointLight.position.set(-5, -2, 5);
+        scene.add(accentPointLight);
+
+        const masterGroup = new THREE.Group();
+        scene.add(masterGroup);
+
+        // Rede Neural
+        const networkGroup = new THREE.Group();
+        const layers = [8, 12, 10, 6, 1];
+        const nodePositions = [];
+        const layerDistance = 2.2;
+
+        const nodeGeo = new THREE.SphereGeometry(0.12, 24, 24);
+        
+        layers.forEach((count, layerIndex) => {
+            const x = (layerIndex - layers.length / 2) * layerDistance;
+            for (let i = 0; i < count; i++) {
+                const y = (i - count / 2) * 0.6;
+                const z = (Math.random() - 0.5) * 0.5;
+
+                const nodeMat = new THREE.MeshStandardMaterial({ 
+                    color: layerIndex === 0 ? 0x00e5ff : (layerIndex === layers.length-1 ? 0x34d399 : 0x38bdf8),
+                    emissive: layerIndex === 0 ? 0x005577 : 0x002244,
+                    roughness: 0.2,
+                    metalness: 0.8
+                });
+                const node = new THREE.Mesh(nodeGeo, nodeMat);
+                node.position.set(x, y, z);
+                
+                networkGroup.add(node);
+                nodePositions.push({ x, y, z, layer: layerIndex, mesh: node });
+            }
+        });
+
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.2 });
+        const lineGeo = new THREE.BufferGeometry();
+        const linePositions = [];
+
+        nodePositions.forEach((nodeA) => {
+            nodePositions.forEach((nodeB) => {
+                if (nodeB.layer === nodeA.layer + 1) {
+                    linePositions.push(nodeA.x, nodeA.y, nodeA.z);
+                    linePositions.push(nodeB.x, nodeB.y, nodeB.z);
+                }
+            });
+        });
+
+        lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        const lines = new THREE.LineSegments(lineGeo, lineMat);
+        networkGroup.add(lines);
+
+        const scanPlaneGeo = new THREE.PlaneGeometry(0.15, 8);
+        const scanPlaneMat = new THREE.MeshBasicMaterial({ color: 0x34d399, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
+        const scanPlane = new THREE.Mesh(scanPlaneGeo, scanPlaneMat);
+        scanPlane.rotation.y = Math.PI / 2;
+        networkGroup.add(scanPlane);
+
+        networkGroup.position.set(-2, 0, 0);
+        masterGroup.add(networkGroup);
+
+        // Partículas
+        const particlesGeo = new THREE.BufferGeometry();
+        const particleCount = 400;
+        const particlePos = new Float32Array(particleCount * 3);
+
+        for(let i=0; i<particleCount*3; i+=3) {
+            particlePos[i] = (Math.random() - 0.5) * 25;
+            particlePos[i+1] = (Math.random() - 0.5) * 25;
+            particlePos[i+2] = (Math.random() - 0.5) * 25;
+        }
+
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.05,
+            color: 0x00e5ff,
+            transparent: true,
+            opacity: 0.5
+        });
+        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particleSystem);
+
+        // Painel Holográfico
+        const imagePanelGroup = new THREE.Group();
+
+        const panelFrameGeo = new THREE.BoxGeometry(4.2, 5.4, 0.08);
+        const panelFrameMat = new THREE.MeshPhysicalMaterial({
+            color: 0x0f172a,
+            metalness: 0.1,
+            roughness: 0.1,
+            transmission: 0.6,
+            thickness: 0.5,
+            transparent: true,
+            opacity: 0.95,
+            clearcoat: 1.0
+        });
+        const panelFrame = new THREE.Mesh(panelFrameGeo, panelFrameMat);
+        imagePanelGroup.add(panelFrame);
+
+        const edgesGeo = new THREE.EdgesGeometry(panelFrameGeo);
+        const edgesMat = new THREE.LineBasicMaterial({ color: 0x00e5ff, linewidth: 2 });
+        const panelEdges = new THREE.LineSegments(edgesGeo, edgesMat);
+        imagePanelGroup.add(panelEdges);
+
+        const imageTextureGeo = new THREE.PlaneGeometry(4.0, 5.2);
+        const textureLoader = new THREE.TextureLoader();
+
+        const imageMaterial = new THREE.MeshBasicMaterial({
+            side: THREE.DoubleSide,
+            transparent: true
+        });
+        const imageMesh = new THREE.Mesh(imageTextureGeo, imageMaterial);
+        imageMesh.position.z = 0.05;
+        imagePanelGroup.add(imageMesh);
+
+        imagePanelGroup.position.set(3.2, 0, 0);
+        masterGroup.add(imagePanelGroup);
+
+        // Gera texture visual de reserva para caso o navegador bloqueie leitura local
+        function generateFallbackCanvas(slideIndex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 600;
+            canvas.height = 780;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#050b14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+            ctx.fillStyle = '#00e5ff';
+            ctx.font = 'bold 26px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText(`SLIDE ${slideIndex + 1}`, canvas.width / 2, 80);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 20px system-ui';
+            ctx.fillText('PAINEL HOLOGRÁFICO', canvas.width / 2, 380);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const slideTextures = [
+            generateFallbackCanvas(0),
+            generateFallbackCanvas(1),
+            generateFallbackCanvas(2),
+            generateFallbackCanvas(3),
+            generateFallbackCanvas(4),
+            generateFallbackCanvas(5)
+        ];
+
+        // =======================================================
+        // CARREGAMENTO AUTOMÁTICO DAS IMAGENS DA PASTA LOCAL
+        // =======================================================
+        const extensions = ['png', 'jpg', 'jpeg', 'PNG', 'JPG', 'JPEG'];
+
+        function autoLoadImage(index) {
+            let loaded = false;
+            extensions.forEach(ext => {
+                if (loaded) return;
+                const path = `imagem${index + 1}.${ext}`;
+                
+                textureLoader.load(
+                    path,
+                    (tex) => {
+                        slideTextures[index] = tex;
+                        if (index === currentSlide) {
+                            update3DImage(index);
+                        }
+                        loaded = true;
+                    },
+                    undefined,
+                    () => {
+                        // Trata erros silenciosamente mantendo o canvas fallback
+                    }
+                );
+            });
+        }
+
+        // Tenta carregar automaticamente as 6 imagens ao iniciar
+        for (let i = 0; i < 6; i++) {
+            autoLoadImage(i);
+        }
+
+        function update3DImage(slideIndex) {
+            if (slideIndex === 6) {
+                imagePanelGroup.visible = false;
+            } else {
+                imagePanelGroup.visible = true;
+                imageMaterial.map = slideTextures[slideIndex];
+                imageMaterial.needsUpdate = true;
+            }
+        }
+
+        const slideCameraViews = [
+            { pos: new THREE.Vector3(0, 0, 8.5), lookAt: new THREE.Vector3(0, 0, 0) },
+            { pos: new THREE.Vector3(-2.5, 1, 7), lookAt: new THREE.Vector3(-1, 0, 0) },
+            { pos: new THREE.Vector3(2.5, -0.5, 7), lookAt: new THREE.Vector3(2, 0, 0) },
+            { pos: new THREE.Vector3(0, 2, 8), lookAt: new THREE.Vector3(0, 0, 0) },
+            { pos: new THREE.Vector3(1, -1, 7.5), lookAt: new THREE.Vector3(0, 0, 0) },
+            { pos: new THREE.Vector3(-1.5, 1.5, 7.5), lookAt: new THREE.Vector3(-0.5, 0, 0) },
+            { pos: new THREE.Vector3(0, 0, 7.5), lookAt: new THREE.Vector3(0, 0, 0) }
+        ];
+
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('dots-container');
+        const slidesContainer = document.getElementById('slides-container');
+
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsContainer.appendChild(dot);
+        });
+
+        function updateSlideUI(index) {
+            slides.forEach(s => s.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((d, i) => d.classList.toggle('active', i === index));
+
+            document.getElementById('slide-indicator').innerText = `${index + 1} / ${slides.length}`;
+
+            if (index === slides.length - 1) { 
+                slidesContainer.style.justifyContent = 'center';
+                slidesContainer.style.paddingLeft = '0';
+            } else {
+                slidesContainer.style.justifyContent = 'flex-start';
+                slidesContainer.style.paddingLeft = '5%';
+            }
+
+            update3DImage(index);
+
+            if (index === 3) {
+                lineMat.color.setHex(0xfbbf24);
+                scanPlane.material.color.setHex(0xf87171);
+                edgesMat.color.setHex(0xf87171);
+            } else {
+                lineMat.color.setHex(0x00e5ff);
+                scanPlane.material.color.setHex(0x34d399);
+                edgesMat.color.setHex(0x00e5ff);
+            }
+        }
+
+        function goToSlide(index) {
+            if (index >= 0 && index < slides.length) {
+                currentSlide = index;
+                updateSlideUI(currentSlide);
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) goToSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) goToSlide(currentSlide - 1);
+        }
+
+        let targetCamPos = slideCameraViews[0].pos;
+        let targetCamLookAt = slideCameraViews[0].lookAt;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            mouse.x += (mouse.targetX - mouse.x) * 0.05;
+            mouse.y += (mouse.targetY - mouse.y) * 0.05;
+
+            imagePanelGroup.rotation.y = mouse.x * 0.15;
+            imagePanelGroup.rotation.x = -mouse.y * 0.15;
+            
+            networkGroup.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15 + mouse.x * 0.1;
+            networkGroup.rotation.x = Math.cos(Date.now() * 0.0005) * 0.08 - mouse.y * 0.1;
+
+            scanPlane.position.x = Math.sin(Date.now() * 0.002) * 3.8;
+
+            targetCamPos = slideCameraViews[currentSlide].pos;
+            targetCamLookAt = slideCameraViews[currentSlide].lookAt;
+
+            camera.position.lerp(targetCamPos, 0.04);
+            controls.target.lerp(targetCamLookAt, 0.04);
+            controls.update();
+
+            particleSystem.rotation.y += 0.0005;
+
+            renderer.render(scene, camera);
+        }
+
+        updateSlideUI(0);
+        animate();
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') nextSlide();
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+        });
+
+        let isCooldown = false;
+        window.addEventListener('wheel', (e) => {
+            if (isCooldown) return;
+            if (e.deltaY > 30) {
+                nextSlide();
+                triggerCooldown();
+            } else if (e.deltaY < -30) {
+                prevSlide();
+                triggerCooldown();
+            }
+        });
+
+        function triggerCooldown() {
+            isCooldown = true;
+            setTimeout(() => { isCooldown = false; }, 800);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
